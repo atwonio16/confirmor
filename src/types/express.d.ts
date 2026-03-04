@@ -9,6 +9,10 @@ declare global {
         clinic: ClinicRow;
         user: UserRow;
       };
+      adminContext?: {
+        userId: string;
+        email: string;
+      };
     }
   }
 }

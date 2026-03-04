@@ -1,0 +1,9 @@
+﻿appointment_id,start_datetime,phone,appointment_type,patient_name,provider_name,status
+APT-20260304-001,2026-03-04 09:00,0712345678,Consultatie initiala,Popescu Ana,Dr. Ionescu,pending
+APT-20260304-002,2026-03-04 10:30,0722334455,Detartraj,Marin Ioan,Dr. Pavel,confirmed
+APT-20260304-003,2026-03-04 12:00,0733445566,Tratament carie,Stan Maria,Dr. Radu,pending
+APT-20260305-001,2026-03-05 08:45,0744556677,Control periodic,Dumitru Andrei,Dr. Ionescu,pending
+APT-20260305-002,2026-03-05 11:15,0755667788,Extractie,Ilie Elena,Dr. Pavel,canceled_by_patient
+APT-20260305-003,2026-03-05 13:30,0766778899,Igienizare,Tudor Mihai,Dr. Radu,pending
+APT-20260305-004,2026-03-05 16:00,0777889900,Consultatie ortodontie,Neagu Sofia,Dr. Enache,confirmed
+APT-20260305-005,2026-03-05 17:20,0788990011,Urgenta,Georgescu Vlad,Dr. Radu,pending

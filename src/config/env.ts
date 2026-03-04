@@ -24,6 +24,18 @@ function optionalNumber(name: string, fallback: number): number {
   return parsed;
 }
 
+function optionalLowercaseList(name: string): string[] {
+  const raw = process.env[name];
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+}
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: optionalNumber('PORT', 3000),
@@ -36,6 +48,7 @@ export const env = {
   SUPABASE_SERVICE_ROLE_KEY: required('SUPABASE_SERVICE_ROLE_KEY'),
 
   COOKIE_SECRET: required('COOKIE_SECRET'),
+  ADMIN_EMAILS: optionalLowercaseList('ADMIN_EMAILS'),
   ACCESS_COOKIE_NAME: 'confirmor_access_token',
   REFRESH_COOKIE_NAME: 'confirmor_refresh_token',
 
