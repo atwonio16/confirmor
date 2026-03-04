@@ -8,7 +8,7 @@ import { clearAdminSessionCookies, clearSessionCookies, setAdminSessionCookies, 
 import { getManagerUserByAuthId } from '../db/users';
 import { dayAfterTomorrowLocal, dayRangeUtc } from '../utils/datetime';
 import { countAppointmentsByStatus, getAppointmentById, getAppointmentsInRange, setAppointmentStatus } from '../db/appointments';
-import { getClinicById } from '../db/clinics';
+import { getClinicById, listClinics } from '../db/clinics';
 import {
   renderAppointmentsPage,
   renderAdminDashboardPage,
@@ -24,7 +24,12 @@ import { isPlatformAdminEmail, requirePlatformAdminAuth } from '../auth/adminMid
 import { importCsvSnapshot } from './csvImportService';
 import { findTokenWithAppointment, markAllTokensUsedForAppointment } from '../db/tokens';
 import { validateTokenRecord } from '../utils/tokenValidation';
-import { notifyClinicForPatientCancellation, sendConfirmedAckIfEnabled } from '../jobs/confirmorJobs';
+import {
+  notifyClinicForPatientCancellation,
+  runAutoCancelJobForClinic,
+  runConfirmRequestJobForClinic,
+  sendConfirmedAckIfEnabled
+} from '../jobs/confirmorJobs';
 import { runSchedulerTick } from '../jobs/scheduler';
 import {
   createClinicWithManager,
@@ -153,6 +158,21 @@ function adminRedirectWithMessage(res: Response, key: 'message' | 'error', value
   res.redirect(`/admin?${key}=${encoded}`);
 }
 
+function requireCronAuth(req: Request, res: Response): boolean {
+  if (!env.CRON_SECRET) {
+    return true;
+  }
+
+  const authHeader = req.header('authorization') ?? '';
+  const expected = `Bearer ${env.CRON_SECRET}`;
+  if (authHeader !== expected) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return false;
+  }
+
+  return true;
+}
+
 async function handleCsvImportRequest(req: Request, res: Response): Promise<void> {
   const auth = req.authContext;
   if (!auth) {
@@ -253,17 +273,46 @@ export function buildRouter(): Router {
 
   router.get('/api/cron/tick', async (req, res, next) => {
     try {
-      if (env.CRON_SECRET) {
-        const authHeader = req.header('authorization') ?? '';
-        const expected = `Bearer ${env.CRON_SECRET}`;
-        if (authHeader !== expected) {
-          res.status(401).json({ error: 'Unauthorized' });
-          return;
-        }
+      if (!requireCronAuth(req, res)) {
+        return;
       }
 
       await runSchedulerTick();
       res.status(200).json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/api/cron/confirm-now', async (req, res, next) => {
+    try {
+      if (!requireCronAuth(req, res)) {
+        return;
+      }
+
+      const clinics = await listClinics();
+      for (const clinic of clinics) {
+        await runConfirmRequestJobForClinic(clinic);
+      }
+
+      res.status(200).json({ ok: true, triggeredClinics: clinics.length });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/api/cron/auto-cancel-now', async (req, res, next) => {
+    try {
+      if (!requireCronAuth(req, res)) {
+        return;
+      }
+
+      const clinics = await listClinics();
+      for (const clinic of clinics) {
+        await runAutoCancelJobForClinic(clinic);
+      }
+
+      res.status(200).json({ ok: true, triggeredClinics: clinics.length });
     } catch (error) {
       next(error);
     }
